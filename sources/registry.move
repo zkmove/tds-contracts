@@ -33,6 +33,23 @@ module tds::registry {
         });
     }
 
+    #[view]
+    public fun get_module(addr: address, name: vector<u8>): vector<u8>
+    acquires Modules {
+        let id = ModuleId { addr, name: string::utf8(name) };
+        let ms = borrow_global<Modules>(@tds);
+        *table::borrow(&ms.modules, id)
+    }
+
+    #[view]
+    public fun get_vk(addr: address, name: vector<u8>, function_index: u16): vector<u8>
+    acquires Registry {
+        let id = ModuleId { addr, name: string::utf8(name) };
+        let registry = borrow_global<Registry>(@tds);
+        let mkeys = table::borrow(&registry.verify_keys, id);
+        *table::borrow(mkeys, function_index)
+    }
+
     public entry fun register_module(addr: address, name: vector<u8>, code: vector<u8>, verify_keys: vector<vector<u8>>)
     acquires Modules, Registry {
         let module_id = ModuleId { addr, name: string::utf8(name) };
