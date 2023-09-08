@@ -26,9 +26,15 @@ module tds::query {
 
     struct EventHandles has key {
         new_event_handle: event::EventHandle<NewQueryEvent>,
+        reply_event_handle: event::EventHandle<ReplyQueryEvent>,
     }
 
     struct NewQueryEvent has drop, store {
+        user: address,
+        id: u64
+    }
+
+    struct ReplyQueryEvent has drop, store {
         user: address,
         id: u64
     }
@@ -37,7 +43,8 @@ module tds::query {
     fun init_module(sender: &signer) {
         assert!(address_of(sender) == @tds, 401);
         move_to(sender, EventHandles {
-            new_event_handle: account::new_event_handle(sender)
+            new_event_handle: account::new_event_handle(sender),
+            reply_event_handle: account::new_event_handle(sender),
         });
     }
 
@@ -75,5 +82,31 @@ module tds::query {
         table_with_length::add(&mut queries.queries, id, query);
         queries.query_counter = id + 1;
         id
+    }
+
+    public entry fun reply_query(
+        sender: signer,
+        user: address,
+        query_id: u64,
+        success: bool,
+        result: vector<u8>,
+        proof: vector<u8>
+    ) acquires Queries, EventHandles {
+        // todo: assert sender is prover?
+        // todo: if success, validate proof. if proof is valid write the result to Query. else, do nothing.
+        // todo: if failure, write result to Query.
+        // if it's deadline, failure.
+        let queries = borrow_global_mut<Queries>(user);
+        let q = table_with_length::borrow_mut(&mut queries.queries, query_id);
+
+        write_query_result(q, success, result);
+
+        let event_handles = borrow_global_mut<EventHandles>(@tds);
+        event::emit_event(&mut event_handles.reply_event_handle, ReplyQueryEvent { user, id: query_id });
+    }
+
+    fun write_query_result(q: &mut Query, success: bool, result: vector<u8>) {
+        option::fill(&mut q.success, success);
+        option::fill(&mut q.result, result);
     }
 }

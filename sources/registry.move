@@ -50,6 +50,8 @@ module tds::registry {
         *table::borrow(mkeys, function_index)
     }
 
+    /// verify_key is composed with vk+function_index
+    /// TODO: add circuit configuration.
     public entry fun register_module(addr: address, name: vector<u8>, code: vector<u8>, verify_keys: vector<vector<u8>>)
     acquires Modules, Registry {
         let module_id = ModuleId { addr, name: string::utf8(name) };
